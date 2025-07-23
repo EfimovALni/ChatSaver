@@ -1049,7 +1049,124 @@ class ChatSaver {
   }
 
   /**
-   * Create ULTRA-SIMPLIFIED HTML for PDF generation (Senior dev approach)
+   * Collect chat statistics for metadata
+   */
+  collectChatStatistics(messages) {
+    let userMessages = 0;
+    let assistantMessages = 0;
+    let totalImages = 0;
+    let userImages = 0;
+    let assistantImages = 0;
+    let codeBlocks = 0;
+    let firstMessageTime = null;
+    let lastMessageTime = null;
+
+    messages.forEach((message, index) => {
+      if (message.role === 'user') {
+        userMessages++;
+      } else {
+        assistantMessages++;
+      }
+
+      // Count images
+      if (message.richContent && message.richContent.hasImages) {
+        const imageCount = message.richContent.images ? message.richContent.images.length : 1;
+        totalImages += imageCount;
+        if (message.role === 'user') {
+          userImages += imageCount;
+        } else {
+          assistantImages += imageCount;
+        }
+      }
+
+      // Count code blocks
+      if (message.richContent && message.richContent.codeBlocks) {
+        codeBlocks += message.richContent.codeBlocks.length;
+      }
+
+      // Track timestamps
+      if (message.timestamp) {
+        if (!firstMessageTime || message.timestamp < firstMessageTime) {
+          firstMessageTime = message.timestamp;
+        }
+        if (!lastMessageTime || message.timestamp > lastMessageTime) {
+          lastMessageTime = message.timestamp;
+        }
+      }
+    });
+
+    return {
+      totalMessages: messages.length,
+      userMessages,
+      assistantMessages,
+      totalImages,
+      userImages,
+      assistantImages,
+      codeBlocks,
+      firstMessageTime: firstMessageTime ? firstMessageTime.toLocaleString('ru-RU') : 'Неизвестно',
+      lastMessageTime: lastMessageTime ? lastMessageTime.toLocaleString('ru-RU') : 'Неизвестно'
+    };
+  }
+
+  /**
+   * Process message content preserving formatting
+   */
+  processMessageContent(message) {
+    let content = message.content || '';
+    
+    // Use HTML content if available (preserves formatting)
+    if (message.htmlContent && message.htmlContent.trim()) {
+      console.log('ChatSaver: Using HTML content for rich formatting');
+      
+      // Clean HTML but preserve formatting tags
+      let htmlContent = message.htmlContent
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove scripts
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove styles  
+        .replace(/class="[^"]*"/gi, '') // Remove classes
+        .replace(/id="[^"]*"/gi, '') // Remove IDs
+        .replace(/<div[^>]*>/gi, '<div>') // Simplify divs
+        .replace(/<span[^>]*>/gi, '<span>') // Simplify spans
+        .trim();
+      
+      // Add inline styles to preserve formatting
+      htmlContent = htmlContent
+        .replace(/<strong>/gi, '<strong style="font-weight:bold;">')
+        .replace(/<b>/gi, '<strong style="font-weight:bold;">')
+        .replace(/<em>/gi, '<em style="font-style:italic;">')
+        .replace(/<i>/gi, '<em style="font-style:italic;">')
+        .replace(/<code>/gi, '<code style="background:#f8f9fa;padding:2px 4px;border-radius:3px;font-family:monospace;font-size:85%;">')
+        .replace(/<pre>/gi, '<pre style="background:#f8f9fa;padding:8px;border-radius:4px;font-family:monospace;font-size:85%;white-space:pre-wrap;overflow-wrap:break-word;">')
+        .replace(/<blockquote>/gi, '<blockquote style="border-left:3px solid #ddd;padding-left:12px;margin:8px 0;color:#666;">')
+        .replace(/<ul>/gi, '<ul style="margin:8px 0;padding-left:20px;">')
+        .replace(/<ol>/gi, '<ol style="margin:8px 0;padding-left:20px;">')
+        .replace(/<li>/gi, '<li style="margin:2px 0;">')
+        .replace(/<h1>/gi, '<h1 style="font-size:16px;font-weight:bold;margin:8px 0;">')
+        .replace(/<h2>/gi, '<h2 style="font-size:15px;font-weight:bold;margin:6px 0;">')
+        .replace(/<h3>/gi, '<h3 style="font-size:14px;font-weight:bold;margin:4px 0;">')
+        .replace(/<p>/gi, '<p style="margin:4px 0;line-height:1.3;">');
+      
+      return htmlContent;
+    }
+    
+    // Fallback to text content with basic formatting preservation
+    console.log('ChatSaver: Using text content with formatting preservation');
+    
+    // Escape HTML but preserve line breaks
+    content = this.escapeHtml(content);
+    
+    // Preserve basic formatting patterns
+    content = content
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:bold;">$1</strong>') // **bold**
+      .replace(/\*(.*?)\*/g, '<em style="font-style:italic;">$1</em>') // *italic*
+      .replace(/`([^`]+)`/g, '<code style="background:#f8f9fa;padding:2px 4px;border-radius:3px;font-family:monospace;font-size:85%;">$1</code>') // `code`
+      .replace(/\n/g, '<br>') // Line breaks
+      .replace(/  /g, '&nbsp;&nbsp;'); // Double spaces
+    
+    return content;
+  }
+
+  /**
+   * Create improved HTML for PDF generation with better formatting
    */
   createFullHTMLCopy(messages, title, timestamp) {
     console.log('ChatSaver: Creating ULTRA-SIMPLIFIED HTML for PDF with', messages.length, 'messages');
@@ -1062,19 +1179,35 @@ class ChatSaver {
       return `<html><head><meta charset="UTF-8"></head><body style="font-family:Arial;padding:20px;"><h1>Ошибка: нет сообщений</h1><p>Обновите страницу ChatGPT и попробуйте снова</p></body></html>`;
     }
     
-    // ULTRA-SIMPLE HTML - NO CSS CLASSES, ONLY INLINE STYLES (Senior dev solution)
-    console.log('ChatSaver: Building ultra-simple HTML without CSS classes...');
+    // IMPROVED PDF HTML with better layout and metadata
+    console.log('ChatSaver: Building optimized HTML for better PDF layout...');
+    
+    // Collect chat metadata
+    const chatStats = this.collectChatStatistics(messages);
     
     let html = `<html>
 <head>
 <meta charset="UTF-8">
 <title>${this.escapeHtml(title)}</title>
 </head>
-<body style="font-family:Arial,sans-serif;margin:0;padding:20px;background:white;color:black;font-size:14px;line-height:1.4;">
+<body style="font-family:Arial,sans-serif;margin:0;padding:15px;background:white;color:black;font-size:13px;line-height:1.2;max-width:190mm;overflow-wrap:break-word;word-wrap:break-word;hyphens:auto;">
 
-<div style="border-bottom:2px solid black;padding-bottom:10px;margin-bottom:20px;">
-<h1 style="margin:0 0 10px 0;font-size:20px;color:black;">${this.escapeHtml(title)}</h1>
-<p style="margin:0;font-size:12px;color:gray;">Экспортировано: ${new Date(timestamp).toLocaleString('ru-RU')} | Сообщений: ${messages.length}</p>
+<div style="border-bottom:2px solid black;padding-bottom:15px;margin-bottom:15px;">
+<h1 style="margin:0 0 12px 0;font-size:18px;color:black;font-weight:bold;">${this.escapeHtml(title)}</h1>
+
+<div style="margin-bottom:12px;font-size:11px;color:#444;line-height:1.3;">
+<div style="margin-bottom:8px;">
+<strong>📊 Статистика чата:</strong><br>
+• Сообщений: ${chatStats.totalMessages} (${chatStats.userMessages} от пользователя, ${chatStats.assistantMessages} от ChatGPT)<br>
+• Изображений: ${chatStats.totalImages} (${chatStats.userImages} от пользователя, ${chatStats.assistantImages} от ChatGPT)<br>
+• Блоков кода: ${chatStats.codeBlocks}<br>
+• Первое сообщение: ${chatStats.firstMessageTime}<br>
+• Последнее сообщение: ${chatStats.lastMessageTime}
+</div>
+<div style="font-size:10px;color:#666;">
+Экспортировано: ${new Date(timestamp).toLocaleString('ru-RU')} | ChatSaver v1.1.5
+</div>
+</div>
 </div>`;
 
     let processedMessages = 0;
@@ -1086,58 +1219,61 @@ class ChatSaver {
       
       console.log(`ChatSaver: Processing message ${index + 1}/${messages.length} - Role: ${message.role}, Length: ${message.content.length}`);
       
-      // Ultra-simple styling based on role
+      // Improved styling with better text wrapping
       const isUser = message.role === 'user';
-      const bgColor = isUser ? '#f0f0f0' : '#ffffff';
-      const borderColor = isUser ? '#0066cc' : '#00aa44';
-      const roleText = isUser ? 'ПОЛЬЗОВАТЕЛЬ' : 'CHATGPT';
+      const bgColor = isUser ? '#f8f9fa' : '#ffffff';
+      const borderColor = isUser ? '#007bff' : '#10a37f';
+      const roleText = isUser ? '👤 Пользователь' : '🤖 ChatGPT';
       
-      // Always use text content for maximum compatibility
-      let content = this.escapeHtml(message.content || '');
-      console.log(`ChatSaver: Using text content for message ${index + 1}`);
+      // Process content with preserved formatting
+      let content = this.processMessageContent(message);
+      console.log(`ChatSaver: Processed content for message ${index + 1}`);
       
-      // Add image indication with ultra-simple styling
+      // Add image indication for user messages
       if (message.role === 'user' && message.richContent && message.richContent.hasImages) {
         const imageCount = message.richContent.images ? message.richContent.images.length : 1;
-        content = `<div style="background:#eeeeee;padding:10px;margin:5px 0;border:1px solid #cccccc;">📷 Изображение отправлено (${imageCount} шт.)</div>` + content;
+        content = `<div style="background:#e3f2fd;padding:8px;margin:6px 0;border-left:3px solid #2196f3;font-size:12px;">📷 Изображение отправлено (${imageCount} шт.)</div>` + content;
         console.log(`ChatSaver: Added ${imageCount} image(s) to user message ${index + 1}`);
       }
       
-      // Add code blocks with ultra-simple styling
+      // Add code blocks with better formatting
       if (message.richContent && message.richContent.codeBlocks && message.richContent.codeBlocks.length > 0) {
         console.log(`ChatSaver: Adding ${message.richContent.codeBlocks.length} code block(s) to message ${index + 1}`);
         message.richContent.codeBlocks.forEach(block => {
-          content += `<div style="background:#f5f5f5;padding:8px;margin:5px 0;border:1px solid #dddddd;font-family:monospace;font-size:12px;">${block.language || 'код'}:<br>${this.escapeHtml(block.content)}</div>`;
+          content += `<div style="background:#f8f9fa;padding:8px;margin:6px 0;border:1px solid #dee2e6;border-left:3px solid #6f42c1;font-family:monospace;font-size:11px;white-space:pre-wrap;overflow-wrap:break-word;"><strong>${block.language || 'код'}:</strong><br>${this.escapeHtml(block.content)}</div>`;
         });
       }
       
       // Add assistant image indication
       if (message.role === 'assistant' && message.richContent && message.richContent.hasImages) {
         const imageCount = message.richContent.images ? message.richContent.images.length : 1;
-        content += `<div style="background:#eeeeee;padding:10px;margin:5px 0;border:1px solid #cccccc;">🖼️ Изображение в ответе (${imageCount} шт.)</div>`;
+        content += `<div style="background:#e8f5e8;padding:8px;margin:6px 0;border-left:3px solid #4caf50;font-size:12px;">🖼️ Изображение в ответе (${imageCount} шт.)</div>`;
         console.log(`ChatSaver: Added ${imageCount} image(s) to assistant message ${index + 1}`);
       }
       
       // Ensure we have content
       if (!content.trim()) {
-        content = 'Пустое сообщение';
+        content = '<em>Пустое сообщение</em>';
         console.warn(`ChatSaver: Message ${index + 1} appears to be empty`);
       }
       
-      // Ultra-simple message structure
+      // Improved message structure with better text wrapping
       html += `
-<div style="margin:15px 0;padding:15px;background:${bgColor};border-left:4px solid ${borderColor};">
-<div style="font-weight:bold;font-size:14px;margin-bottom:8px;color:#333333;">${roleText}</div>
-<div style="font-size:14px;line-height:1.4;color:#000000;">${content}</div>
+<div style="margin:10px 0;padding:12px;background:${bgColor};border-left:4px solid ${borderColor};page-break-inside:avoid;overflow-wrap:break-word;word-wrap:break-word;hyphens:auto;">
+<div style="font-weight:bold;font-size:13px;margin-bottom:6px;color:#333;overflow-wrap:break-word;">${roleText}</div>
+<div style="font-size:13px;line-height:1.3;color:#000;overflow-wrap:break-word;word-wrap:break-word;white-space:pre-wrap;">${content}</div>
 </div>`;
     
       processedMessages++;
     });
 
     html += `
-<div style="margin-top:30px;text-align:center;color:#666666;font-size:12px;">
-Обработано сообщений: ${processedMessages} | ChatSaver
+
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #ddd;text-align:center;color:#666;font-size:10px;page-break-inside:avoid;">
+<div style="margin-bottom:4px;">Обработано сообщений: ${processedMessages} из ${messages.length}</div>
+<div>Создано с помощью ChatSaver v1.1.5 | ${new Date().toLocaleString('ru-RU')}</div>
 </div>
+
 </body>
 </html>`;
 

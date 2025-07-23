@@ -117,21 +117,33 @@ class ChatSaverDownloader {
           timeout: 10000
         },
         html2canvas: { 
-          scale: 1, // Keep simple
+          scale: 1.5, // Higher scale for better text quality
           useCORS: false, // Disable CORS for simplicity  
           allowTaint: true, // Allow cross-origin content
           logging: true, // Keep logging for debugging
           backgroundColor: '#ffffff', // White background
-          width: 800, // Fixed width
-          height: 600, // Fixed height
-          // Remove all experimental/complex options for maximum compatibility
+          width: 794, // A4 width in pixels (210mm at 96 DPI)
+          height: 1123, // A4 height in pixels (297mm at 96 DPI)
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 794,
+          windowHeight: 1123,
+          onclone: function(clonedDoc) {
+            // Ensure text wrapping in cloned document
+            const style = clonedDoc.createElement('style');
+            style.textContent = `
+              * { word-wrap: break-word !important; overflow-wrap: break-word !important; }
+              body { max-width: 190mm !important; }
+            `;
+            clonedDoc.head.appendChild(style);
+          }
         },
         jsPDF: { 
           unit: 'mm', 
           format: 'a4', 
           orientation: 'portrait',
           compress: true,
-          precision: 3
+          precision: 16 // Higher precision for better text rendering
         },
         pagebreak: { 
           mode: ['css', 'legacy'],
@@ -145,20 +157,23 @@ class ChatSaverDownloader {
       tempContainer = document.createElement('div');
       tempContainer.id = 'chatsaver-pdf-container-' + Date.now();
       
-      // ULTRA-SIMPLE container styling (Senior dev: minimal is reliable)
+      // Optimized container for better PDF rendering
       tempContainer.style.cssText = `
         position: fixed;
         top: 50px;
         left: 50px;
-        width: 800px;
-        height: 600px;
+        width: 210mm;
+        min-height: 297mm;
+        max-width: 210mm;
         background: white;
         z-index: 999999;
-        border: 2px solid black;
-        padding: 10px;
-        font-family: Arial;
-        font-size: 14px;
+        border: 1px solid #ccc;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
         color: black;
+        overflow: visible;
+        box-sizing: border-box;
       `;
       
       // Clean and validate the HTML content before insertion

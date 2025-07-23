@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatSaver - Universal Chat Exporter",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "description": "Save ChatGPT conversations in multiple formats (PDF, Markdown, Text, JSON) with full formatting and image preservation",
   "author": "ChatSaver Team",
   
