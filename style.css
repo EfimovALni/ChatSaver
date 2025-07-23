@@ -1,0 +1,311 @@
+/**
+ * ChatSaver - Styles
+ * Clean, modern styling for seamless ChatGPT integration
+ * Version: 1.0.0
+ */
+
+/* Main container for ChatSaver UI elements */
+.chatsaver-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 1000;
+}
+
+.chatsaver-container:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Format selection dropdown */
+.chatsaver-format-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  min-width: 90px;
+}
+
+.chatsaver-format-select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.chatsaver-format-select:focus {
+  border-color: #10a37f;
+  box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
+}
+
+.chatsaver-format-select option {
+  background: #2d2d2d;
+  color: #ffffff;
+  padding: 4px 8px;
+}
+
+/* Save button */
+.chatsaver-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #10a37f 0%, #0d8f6e 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  box-shadow: 0 2px 4px rgba(16, 163, 127, 0.2);
+  min-height: 32px;
+}
+
+.chatsaver-save-btn:hover {
+  background: linear-gradient(135deg, #0d8f6e 0%, #0b7d5f 100%);
+  box-shadow: 0 4px 8px rgba(16, 163, 127, 0.3);
+  transform: translateY(-1px);
+}
+
+.chatsaver-save-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(16, 163, 127, 0.2);
+}
+
+.chatsaver-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.chatsaver-save-btn svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.chatsaver-save-btn:hover svg {
+  opacity: 1;
+}
+
+/* Loading container */
+.chatsaver-loading-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+
+/* Progress bar */
+.chatsaver-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(16, 163, 127, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.chatsaver-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10a37f 0%, #0d8f6e 100%);
+  width: 0%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+  position: relative;
+}
+
+.chatsaver-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: chatsaver-progress-shine 2s ease-in-out infinite;
+}
+
+/* Loading text */
+.chatsaver-loading-text {
+  color: #10a37f;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  min-height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Animations */
+@keyframes chatsaver-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes chatsaver-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes chatsaver-progress-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .chatsaver-container {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .chatsaver-container:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .chatsaver-format-select {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .chatsaver-format-select:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+}
+
+/* Light theme support */
+@media (prefers-color-scheme: light) {
+  .chatsaver-container {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #333333;
+  }
+  
+  .chatsaver-container:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+  
+  .chatsaver-format-select {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #333333;
+  }
+  
+  .chatsaver-format-select:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.3);
+  }
+  
+  .chatsaver-format-select option {
+    background: #ffffff;
+    color: #333333;
+  }
+}
+
+/* Mobile responsive design */
+@media (max-width: 768px) {
+  .chatsaver-container {
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  
+  .chatsaver-format-select {
+    width: 100%;
+    font-size: 11px;
+  }
+  
+  .chatsaver-save-btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  
+  .chatsaver-loading-container {
+    min-width: 150px;
+  }
+  
+  .chatsaver-loading-text {
+    font-size: 10px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .chatsaver-container {
+    background: #000000;
+    border: 2px solid #ffffff;
+  }
+  
+  .chatsaver-save-btn {
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid #000000;
+  }
+  
+  .chatsaver-format-select {
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid #000000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .chatsaver-container,
+  .chatsaver-save-btn,
+  .chatsaver-format-select,
+  .chatsaver-progress-fill {
+    transition: none;
+  }
+  
+  .chatsaver-progress-fill::after {
+    animation: none;
+  }
+}
+
+/* Focus visible for accessibility */
+.chatsaver-save-btn:focus-visible {
+  outline: 2px solid #10a37f;
+  outline-offset: 2px;
+}
+
+.chatsaver-format-select:focus-visible {
+  outline: 2px solid #10a37f;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .chatsaver-container {
+    display: none;
+  }
+} 

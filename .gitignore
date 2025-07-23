@@ -1,0 +1,46 @@
+# Browser Extension .gitignore
+
+# Development files
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node modules (if using build tools)
+node_modules/
+npm-debug.log*
+
+# Build output
+dist/
+build/
+
+# Packed extensions
+*.zip
+*.crx
+*.pem
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Temporary files
+.tmp/
+temp/ 
