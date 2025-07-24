@@ -52,6 +52,534 @@ class ChatSaverDownloader {
   }
 
   /**
+   * Create simplified HTML specifically for html2pdf direct conversion
+   * @param {string} htmlContent - Original HTML content
+   * @returns {string} Simplified HTML for PDF conversion
+   */
+  createSimpleHTMLForPDF(htmlContent) {
+    console.log('ChatSaver: 🔧 Creating simplified HTML for direct html2pdf conversion...');
+    
+    try {
+      // Parse the HTML content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      
+      // Extract title
+      const titleElement = tempDiv.querySelector('h1');
+      const title = titleElement ? titleElement.textContent.trim() : 'ChatGPT Conversation';
+      
+      // Extract messages with simple formatting
+      const messages = [];
+      const messageElements = tempDiv.querySelectorAll('[style*="padding"]');
+      
+      messageElements.forEach(msgEl => {
+        const text = msgEl.textContent || msgEl.innerText || '';
+        if (text.trim()) {
+          messages.push({
+            text: text.trim(),
+            isUser: text.includes('👤 Пользователь') || text.includes('👤 You'),
+            isAssistant: text.includes('🤖 ChatGPT') || text.includes('🤖 Assistant')
+          });
+        }
+      });
+      
+      console.log('ChatSaver: Extracted', messages.length, 'messages for simplified PDF');
+      
+      // Create ultra-simple HTML structure
+      const simpleHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+              font-size: 11px;
+              line-height: 1.4;
+              color: #000;
+              background: #fff;
+              padding: 20px;
+              margin: 0;
+            }
+            .title {
+              font-size: 16px;
+              font-weight: bold;
+              margin-bottom: 20px;
+              color: #000;
+              text-align: center;
+              page-break-after: avoid;
+            }
+            .message {
+              margin-bottom: 15px;
+              padding: 8px;
+              border-radius: 6px;
+              page-break-inside: avoid;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+            }
+            .user-message {
+              background-color: #f0f0f0;
+              border-left: 3px solid #007bff;
+            }
+            .assistant-message {
+              background-color: #f9f9f9;
+              border-left: 3px solid #28a745;
+            }
+            .regular-message {
+              background-color: #ffffff;
+              border: 1px solid #e0e0e0;
+            }
+            .message-text {
+              color: #000;
+              white-space: pre-wrap;
+            }
+            @media print {
+              body { background: white; }
+              .message { break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="title">${title}</div>
+          ${messages.map(msg => `
+            <div class="message ${msg.isUser ? 'user-message' : msg.isAssistant ? 'assistant-message' : 'regular-message'}">
+              <div class="message-text">${this.escapeHTML(msg.text)}</div>
+            </div>
+          `).join('')}
+        </body>
+        </html>
+      `;
+      
+      console.log('ChatSaver: ✅ Simplified HTML created successfully');
+      return simpleHTML;
+      
+    } catch (error) {
+      console.error('ChatSaver: ❌ Error creating simplified HTML:', error);
+      
+      // Ultra-fallback: create minimal HTML
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial; padding: 20px; font-size: 12px; color: #000; background: #fff; }
+            .content { white-space: pre-wrap; word-wrap: break-word; }
+          </style>
+        </head>
+        <body>
+          <h1>ChatGPT Conversation</h1>
+          <div class="content">${this.escapeHTML(this.convertHTMLToPlainText(htmlContent))}</div>
+        </body>
+        </html>
+      `;
+    }
+  }
+
+  /**
+   * Escape HTML characters for safe insertion
+   * @param {string} text - Text to escape
+   * @returns {string} Escaped HTML
+   */
+  escapeHTML(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+    /**
+   * Convert HTML to plain text for emergency fallback
+   * @param {string} htmlContent - HTML content to convert
+   * @returns {string} Plain text content
+   */
+  convertHTMLToPlainText(htmlContent) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Get title
+    const titleElement = tempDiv.querySelector('h1');
+    const title = titleElement ? titleElement.textContent.trim() : 'ChatGPT Conversation';
+    
+    let textContent = `${title}\n`;
+    textContent += `Создано: ${new Date().toLocaleString('ru-RU')}\n`;
+    textContent += `Режим: Экстренный (текст)\n`;
+    textContent += '='.repeat(50) + '\n\n';
+    
+    // Extract messages
+    const messageElements = tempDiv.querySelectorAll('div[style*="border-left"]');
+    
+    messageElements.forEach((msgElement, index) => {
+      const roleElement = msgElement.querySelector('div[style*="font-weight:bold"]');
+      const contentElement = msgElement.querySelector('div[style*="line-height"]');
+      
+      if (roleElement && contentElement) {
+        const role = roleElement.textContent.trim();
+        const content = contentElement.textContent.trim();
+        
+        textContent += `[${role}]\n`;
+        textContent += `${content}\n`;
+        textContent += '-'.repeat(30) + '\n\n';
+      }
+    });
+    
+    return textContent;
+  }
+
+  /**
+   * EMERGENCY TEXT-ONLY PDF - No html2canvas, pure jsPDF text
+   * @param {string} htmlContent - The HTML content to extract text from
+   * @param {string} filename - The filename for the PDF
+   */
+  async generateEmergencyTextPDF(htmlContent, filename) {
+    console.log('ChatSaver: 🚨 EMERGENCY TEXT-ONLY mode (no html2canvas)...');
+    console.log('ChatSaver: Input filename:', filename);
+    console.log('ChatSaver: HTML content length:', htmlContent ? htmlContent.length : 'NULL');
+    console.log('ChatSaver: HTML preview:', htmlContent ? htmlContent.substring(0, 200) + '...' : 'NO CONTENT');
+    
+    // ULTRA-DETAILED environment check
+    console.log('ChatSaver: 🔍 ULTRA-DETAILED Environment check:');
+    console.log('  - window.jsPDF:', typeof window.jsPDF, window.jsPDF);
+    console.log('  - window.jspdf:', typeof window.jspdf, window.jspdf);
+    console.log('  - html2pdf:', typeof html2pdf, html2pdf);
+    console.log('  - html2pdf.jsPDF:', typeof html2pdf !== 'undefined' ? typeof html2pdf.jsPDF : 'html2pdf undefined');
+    
+    // Check if html2pdf bundle is loaded
+    console.log('ChatSaver: 🔍 Library loading check:');
+    console.log('  - html2pdf function available:', typeof html2pdf === 'function');
+    if (typeof html2pdf === 'function') {
+      try {
+        const testInstance = html2pdf();
+        console.log('  - html2pdf instance created:', !!testInstance);
+        console.log('  - html2pdf instance type:', typeof testInstance);
+        console.log('  - html2pdf instance keys:', testInstance ? Object.keys(testInstance) : 'NO INSTANCE');
+      } catch (testError) {
+        console.log('  - html2pdf instance creation failed:', testError.message);
+      }
+    }
+    
+    // Check for any global jsPDF variants
+    console.log('ChatSaver: 🔍 Searching for jsPDF variants:');
+    const jsPDFVariants = ['jsPDF', 'jspdf', 'JSPDF', 'window.jsPDF'];
+    jsPDFVariants.forEach(variant => {
+      try {
+        const value = eval(variant);
+        console.log(`  - ${variant}:`, typeof value, !!value);
+      } catch (e) {
+        console.log(`  - ${variant}: NOT FOUND`);
+      }
+    });
+    
+    // Check loaded scripts
+    console.log('ChatSaver: 🔍 Loaded scripts check:');
+    const scripts = Array.from(document.querySelectorAll('script[src]'));
+    const html2pdfScripts = scripts.filter(s => s.src.includes('html2pdf'));
+    console.log('  - Total scripts loaded:', scripts.length);
+    console.log('  - html2pdf scripts found:', html2pdfScripts.length);
+    html2pdfScripts.forEach((script, i) => {
+      console.log(`    ${i + 1}. ${script.src}`);
+    });
+    
+    try {
+      // 🚀 NEW STRATEGY: Since html2pdf is available, use it DIRECTLY instead of extracting jsPDF
+      console.log('ChatSaver: 🔧 NEW APPROACH: Using html2pdf directly for PDF generation...');
+      
+      if (typeof html2pdf === 'function') {
+        console.log('ChatSaver: ✅ html2pdf is available, creating simple HTML for conversion...');
+        
+        try {
+          // Create ultra-simple HTML that html2pdf can handle
+          const simplifiedHTML = this.createSimpleHTMLForPDF(htmlContent);
+          
+          console.log('ChatSaver: 📄 Simplified HTML created, length:', simplifiedHTML.length);
+          console.log('ChatSaver: 📄 HTML preview:', simplifiedHTML.substring(0, 300));
+          
+          // Use html2pdf DIRECTLY with simplified settings
+          const opt = {
+            margin: [10, 10, 10, 10],
+            filename: filename,
+            image: { type: 'jpeg', quality: 0.8 },
+            html2canvas: { 
+              scale: 1,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff',
+              logging: false
+            },
+            jsPDF: { 
+              unit: 'mm', 
+              format: 'a4', 
+              orientation: 'portrait',
+              compress: true
+            }
+          };
+          
+          console.log('ChatSaver: 🔄 Starting html2pdf conversion...');
+          
+          await html2pdf().set(opt).from(simplifiedHTML).save();
+          
+          console.log('ChatSaver: ✅ PDF generated successfully via direct html2pdf!');
+          return; // Success! Exit the function
+          
+        } catch (directError) {
+          console.error('ChatSaver: ❌ Direct html2pdf conversion failed:', directError);
+          console.log('ChatSaver: 🔄 Falling back to jsPDF extraction...');
+        }
+      }
+      
+      // FALLBACK: Try to extract jsPDF only if direct html2pdf failed
+      console.log('ChatSaver: 🔄 FALLBACK: Attempting jsPDF extraction...');
+      let jsPDFLib = null;
+      
+      // Try multiple ways to access jsPDF
+      if (typeof window.jsPDF !== 'undefined') {
+        jsPDFLib = window.jsPDF;
+        console.log('ChatSaver: Found jsPDF in window.jsPDF');
+      } else if (typeof window.jspdf !== 'undefined' && window.jspdf.jsPDF) {
+        jsPDFLib = window.jspdf.jsPDF;
+        console.log('ChatSaver: Found jsPDF in window.jspdf.jsPDF');
+      } else if (typeof html2pdf !== 'undefined' && html2pdf.jsPDF) {
+        jsPDFLib = html2pdf.jsPDF;
+        console.log('ChatSaver: Found jsPDF in html2pdf.jsPDF');
+      } else {
+        // Advanced jsPDF extraction attempts
+        try {
+          console.log('ChatSaver: 🔍 Advanced jsPDF extraction...');
+          
+          if (typeof html2pdf === 'function') {
+            const html2pdfInstance = html2pdf();
+            console.log('ChatSaver: html2pdf instance created:', !!html2pdfInstance);
+            
+            if (html2pdfInstance) {
+              console.log('ChatSaver: Instance keys:', Object.keys(html2pdfInstance));
+              
+              // Try multiple properties
+              const jsPDFProps = ['jsPDF', 'pdf', 'jspdf', 'doc', '_jsPDF'];
+              for (const prop of jsPDFProps) {
+                if (html2pdfInstance[prop]) {
+                  console.log(`ChatSaver: Found potential jsPDF in instance.${prop}`);
+                  jsPDFLib = html2pdfInstance[prop];
+                  break;
+                }
+              }
+              
+              // Try to trigger PDF creation and intercept jsPDF
+              if (!jsPDFLib) {
+                console.log('ChatSaver: 🔍 Attempting to intercept jsPDF from html2pdf workflow...');
+                const testDiv = document.createElement('div');
+                testDiv.innerHTML = '<div>test</div>';
+                testDiv.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:100px;height:50px;';
+                document.body.appendChild(testDiv);
+                
+                try {
+                  // Try to start html2pdf process and intercept
+                  const worker = html2pdf().set({
+                    margin: 1,
+                    filename: 'test.pdf',
+                    html2canvas: { scale: 0.5 },
+                    jsPDF: { unit: 'mm', format: 'a4' }
+                  }).from(testDiv);
+                  
+                  if (worker && worker.jsPDF) {
+                    jsPDFLib = worker.jsPDF;
+                    console.log('ChatSaver: ✅ Intercepted jsPDF from worker');
+                  }
+                } catch (interceptError) {
+                  console.log('ChatSaver: Intercept attempt failed:', interceptError.message);
+                }
+                
+                document.body.removeChild(testDiv);
+              }
+            }
+          }
+        } catch (extractError) {
+          console.warn('ChatSaver: Advanced jsPDF extraction failed:', extractError);
+        }
+      }
+       
+              if (!jsPDFLib) {
+         console.error('ChatSaver: ❌ jsPDF not available in any form, falling back to TXT...');
+         console.error('ChatSaver: 🚨 THIS IS WHY YOU GET TXT INSTEAD OF PDF!');
+         console.error('ChatSaver: 🔍 Diagnosis: None of the 4 jsPDF access methods worked:');
+         console.error('  1. window.jsPDF:', typeof window.jsPDF);
+         console.error('  2. window.jspdf.jsPDF:', typeof window.jspdf !== 'undefined' ? typeof window.jspdf.jsPDF : 'window.jspdf undefined');
+         console.error('  3. html2pdf.jsPDF:', typeof html2pdf !== 'undefined' ? typeof html2pdf.jsPDF : 'html2pdf undefined');
+         console.error('  4. html2pdf instance jsPDF: extraction failed');
+         
+         console.error('ChatSaver: 💡 POSSIBLE SOLUTIONS:');
+         console.error('  - html2pdf.bundle.min.js might not be loading');
+         console.error('  - Browser extension might be blocking scripts');
+         console.error('  - Content Security Policy might be interfering');
+         console.error('  - Try reloading the page and extension');
+         
+         // Create TXT file as absolute fallback
+         const textContent = this.convertHTMLToPlainText(htmlContent);
+         const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+         const url = URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = filename.replace('.pdf', '.txt');
+         a.click();
+         URL.revokeObjectURL(url);
+         
+         console.log('ChatSaver: ✅ Downloaded as TXT file (jsPDF unavailable)');
+         console.log('ChatSaver: 📋 PLEASE COPY ALL CONSOLE LOGS AND REPORT TO DEVELOPER');
+         
+         // Show user a dialog with the issue
+         alert(`🚨 PDF ГЕНЕРАЦИЯ НЕ РАБОТАЕТ
+         
+Проблема: jsPDF библиотека недоступна
+
+ДИАГНОСТИКА:
+• window.jsPDF: ${typeof window.jsPDF}
+• html2pdf: ${typeof html2pdf}
+
+РЕШЕНИЯ:
+1. Откройте консоль (F12) и скопируйте ВСЕ логи ChatSaver
+2. Перезагрузите страницу + расширение  
+3. Используйте Markdown экспорт как альтернативу
+4. Отправьте логи разработчику для исправления
+
+Создан TXT файл вместо PDF.`);
+         
+         return;
+       }
+      
+      console.log('ChatSaver: ✅ jsPDF is available, proceeding with PDF generation...');
+      
+      // Extract plain text from HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      console.log('ChatSaver: Created temp div for parsing');
+      
+      // Get title
+      const titleElement = tempDiv.querySelector('h1');
+      const title = titleElement ? titleElement.textContent.trim() : 'ChatGPT Conversation';
+      console.log('ChatSaver: Extracted title:', title);
+      
+      // Extract messages as plain text
+      const messages = [];
+      const messageElements = tempDiv.querySelectorAll('div[style*="border-left"]');
+      console.log('ChatSaver: Found message elements:', messageElements.length);
+      
+      messageElements.forEach((msgElement, index) => {
+        const roleElement = msgElement.querySelector('div[style*="font-weight:bold"]');
+        const contentElement = msgElement.querySelector('div[style*="line-height"]');
+        
+        console.log(`ChatSaver: Processing message ${index + 1}:`);
+        console.log(`  - Role element found: ${roleElement ? 'YES' : 'NO'}`);
+        console.log(`  - Content element found: ${contentElement ? 'YES' : 'NO'}`);
+        
+        if (roleElement && contentElement) {
+          const role = roleElement.textContent.trim();
+          const content = contentElement.textContent.trim();
+          console.log(`  - Role: "${role}", Content length: ${content.length}`);
+          messages.push({ role, content });
+        } else {
+          console.warn(`  - Skipping message ${index + 1} - missing role or content element`);
+        }
+      });
+      
+      console.log('ChatSaver: Extracted messages total:', messages.length);
+      
+      // Create simple PDF with jsPDF
+      console.log('ChatSaver: Creating jsPDF document...');
+      const doc = new jsPDFLib({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+      console.log('ChatSaver: jsPDF document created successfully');
+      
+      // Add title
+      doc.setFontSize(16);
+      doc.setFont(undefined, 'bold');
+      doc.text(title, 20, 20);
+      console.log('ChatSaver: Added title to PDF');
+      
+      // Add generation info
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Создано: ${new Date().toLocaleString('ru-RU')}`, 20, 30);
+      doc.text(`Сообщений: ${messages.length}`, 20, 35);
+      doc.text('Режим: Экстренный (только текст)', 20, 40);
+      console.log('ChatSaver: Added header information to PDF');
+      
+      let yPosition = 50;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 20;
+      const lineHeight = 6;
+      const maxWidth = 170;
+      
+      console.log(`ChatSaver: Adding ${messages.length} messages to PDF...`);
+      
+      messages.forEach((message, index) => {
+        console.log(`ChatSaver: Adding message ${index + 1}/${messages.length} to PDF`);
+        
+        // Check if need new page
+        if (yPosition > pageHeight - 40) {
+          doc.addPage();
+          yPosition = 20;
+          console.log(`ChatSaver: Added new page for message ${index + 1}`);
+        }
+        
+        // Add role
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(12);
+        doc.text(message.role, margin, yPosition);
+        yPosition += lineHeight;
+        
+        // Add content (wrap text)
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(10);
+        
+        const lines = doc.splitTextToSize(message.content, maxWidth);
+        console.log(`ChatSaver: Message ${index + 1} split into ${lines.length} lines`);
+        
+        lines.forEach(line => {
+          if (yPosition > pageHeight - 20) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          doc.text(line, margin, yPosition);
+          yPosition += lineHeight - 1;
+        });
+        
+        yPosition += lineHeight; // Space between messages
+      });
+      
+      // Save the PDF
+      console.log('ChatSaver: Saving PDF file with filename:', filename);
+      doc.save(filename);
+      console.log('ChatSaver: ✅ EMERGENCY TEXT-ONLY PDF generated and saved successfully!');
+      
+    } catch (error) {
+      console.error('ChatSaver: Emergency text PDF generation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate Conservative Quality PDF for lower-end systems (DISABLED)
+   */
+  async generateConservativePDF(htmlContent, filename) {
+    // DISABLED: Even conservative mode causes freezes
+    console.warn('ChatSaver: Conservative mode DISABLED due to system freezes');
+    throw new Error('Conservative режим отключен - вызывает зависания. Используется экстренный текстовый режим.');
+  }
+
+  /**
+   * Generate HIGH Quality PDF (DISABLED by default due to performance issues)
+   * @param {string} htmlContent - The HTML content to convert to PDF
+   * @param {string} filename - The filename for the PDF
+   */
+  async generateHighQualityPDF(htmlContent, filename) {
+    // DISABLED: This method causes system freezes and computer hangs
+    console.warn('ChatSaver: HIGH QUALITY mode is DISABLED due to performance issues');
+    throw new Error('HIGH QUALITY режим отключен из-за зависаний компьютера. Используется БЕЗОПАСНЫЙ режим.');
+  }
+
+  /**
    * Download content as PDF
    * @param {string} htmlContent - The HTML content to convert to PDF
    * @param {string} filename - The filename for the PDF
@@ -63,27 +591,54 @@ class ChatSaverDownloader {
         throw new Error('PDF library not loaded');
       }
 
-      console.log('ChatSaver: Starting PDF generation with multiple fallback methods...');
+      console.log('ChatSaver: Starting PDF generation with EMERGENCY-SAFE approach...');
 
-      // Try alternative method first (HTML string)
+      // EMERGENCY: Use TEXT-ONLY method FIRST (no html2canvas at all)
       try {
-        console.log('ChatSaver: Trying Method 1 - HTML string approach...');
-        await this.generatePDFFromHTMLString(htmlContent, filename);
-        console.log('ChatSaver: Method 1 (HTML string) succeeded!');
+        console.log('ChatSaver: Method 1 - EMERGENCY TEXT-ONLY (no html2canvas)...');
+        await this.generateEmergencyTextPDF(htmlContent, filename);
+        console.log('ChatSaver: ✅ Method 1 (EMERGENCY TEXT-ONLY) succeeded!');
         return;
       } catch (method1Error) {
-        console.warn('ChatSaver: Method 1 (HTML string) failed:', method1Error.message);
+        console.warn('ChatSaver: Method 1 (EMERGENCY TEXT-ONLY) failed:', method1Error.message);
       }
 
-      // Fallback to DOM element method
+      // Fallback to simple HTML string method (still uses html2pdf but simpler)
       try {
-        console.log('ChatSaver: Trying Method 2 - DOM element approach...');
-        await this.generatePDFSafely(htmlContent, filename);
-        console.log('ChatSaver: Method 2 (DOM element) succeeded!');
+        console.log('ChatSaver: Method 2 - Simple HTML String...');
+        await this.generatePDFFromHTMLString(htmlContent, filename);
+        console.log('ChatSaver: ✅ Method 2 (HTML String) succeeded!');
         return;
       } catch (method2Error) {
-        console.error('ChatSaver: Method 2 (DOM element) also failed:', method2Error.message);
-        throw new Error(`All PDF generation methods failed. Method 1: ${method1Error?.message || 'Unknown error'}. Method 2: ${method2Error.message}`);
+        console.warn('ChatSaver: Method 2 (HTML String) failed:', method2Error.message);
+      }
+
+      // Final fallback to basic DOM method
+      try {
+        console.log('ChatSaver: Method 3 - Basic DOM Element...');
+        await this.generatePDFSafely(htmlContent, filename);
+        console.log('ChatSaver: ✅ Method 3 (Basic DOM) succeeded!');
+        return;
+      } catch (method3Error) {
+        console.error('ChatSaver: ❌ ALL METHODS FAILED INCLUDING EMERGENCY!');
+        
+        // Show critical error with recommendation to disable PDF
+        this.showErrorDialog(
+          '🚨 КРИТИЧЕСКАЯ ОШИБКА PDF ГЕНЕРАЦИИ',
+          `Все методы PDF не работают, включая экстренный текстовый режим.
+
+НЕМЕДЛЕННЫЕ ДЕЙСТВИЯ:
+• Используйте Markdown экспорт (полная совместимость)
+• Или Plain Text экспорт (универсальный)
+• Перезагрузите браузер и компьютер
+
+ПРИЧИНА: html2pdf библиотека несовместима с вашей системой.
+
+PDF функция будет временно отключена для стабильности.`,
+          'Используйте Markdown или Text форматы'
+        );
+        
+        throw new Error(`🚨 КРИТИЧЕСКАЯ ОШИБКА: ВСЕ методы PDF (включая экстренный) не работают. Используйте Markdown.`);
       }
 
     } catch (error) {
@@ -117,23 +672,33 @@ class ChatSaverDownloader {
           timeout: 10000
         },
         html2canvas: { 
-          scale: 1.5, // Higher scale for better text quality
-          useCORS: false, // Disable CORS for simplicity  
-          allowTaint: true, // Allow cross-origin content
-          logging: true, // Keep logging for debugging
-          backgroundColor: '#ffffff', // White background
-          width: 794, // A4 width in pixels (210mm at 96 DPI)
-          height: 1123, // A4 height in pixels (297mm at 96 DPI)
+          scale: 3, // Much higher scale for crisp text at all zoom levels
+          useCORS: false, 
+          allowTaint: true,
+          logging: true,
+          backgroundColor: '#ffffff',
+          width: 1587, // A4 width at higher DPI (210mm at 192 DPI)
+          height: 2245, // A4 height at higher DPI (297mm at 192 DPI)
           scrollX: 0,
           scrollY: 0,
-          windowWidth: 794,
-          windowHeight: 1123,
+          windowWidth: 1587,
+          windowHeight: 2245,
+          dpi: 192, // Higher DPI for better quality
+          letterRendering: true, // Better text rendering
           onclone: function(clonedDoc) {
-            // Ensure text wrapping in cloned document
+            // Ensure text wrapping and quality in cloned document
             const style = clonedDoc.createElement('style');
             style.textContent = `
-              * { word-wrap: break-word !important; overflow-wrap: break-word !important; }
-              body { max-width: 190mm !important; }
+              * { 
+                word-wrap: break-word !important; 
+                overflow-wrap: break-word !important;
+                -webkit-font-smoothing: antialiased !important;
+                text-rendering: optimizeLegibility !important;
+              }
+              body { 
+                max-width: 190mm !important;
+                font-smooth: always !important;
+              }
             `;
             clonedDoc.head.appendChild(style);
           }
@@ -157,7 +722,7 @@ class ChatSaverDownloader {
       tempContainer = document.createElement('div');
       tempContainer.id = 'chatsaver-pdf-container-' + Date.now();
       
-      // Optimized container for better PDF rendering
+      // High-quality container for crisp PDF rendering
       tempContainer.style.cssText = `
         position: fixed;
         top: 50px;
@@ -174,6 +739,8 @@ class ChatSaverDownloader {
         color: black;
         overflow: visible;
         box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
       `;
       
       // Clean and validate the HTML content before insertion
